@@ -168,11 +168,13 @@ function clearHistory(phoneNumber) {
  * @param {string} phoneNumber - User's phone number
  * @param {string} userMessage - User's message
  * @param {Object} context - Additional context (booking state, language, etc.)
+ * @param {Array} externalHistory - Optional external history (for multi-tenant)
  * @returns {Promise<string>} AI generated response
  */
-async function generateResponse(phoneNumber, userMessage, context = {}) {
+async function generateResponse(phoneNumber, userMessage, context = {}, externalHistory = null) {
     try {
-        const history = getChatHistory(phoneNumber);
+        // Use external history if provided (multi-tenant), otherwise use internal
+        const history = externalHistory !== null ? externalHistory : getChatHistory(phoneNumber);
         
         // Build context message
         let contextInfo = '';
@@ -205,9 +207,11 @@ async function generateResponse(phoneNumber, userMessage, context = {}) {
         const result = await chat.sendMessage(userMessage);
         const response = result.response.text();
         
-        // Save to history
-        addToHistory(phoneNumber, 'user', userMessage);
-        addToHistory(phoneNumber, 'model', response);
+        // Save to history (only if using internal history)
+        if (externalHistory === null) {
+            addToHistory(phoneNumber, 'user', userMessage);
+            addToHistory(phoneNumber, 'model', response);
+        }
         
         return response;
         

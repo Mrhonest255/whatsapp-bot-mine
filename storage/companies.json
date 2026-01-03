@@ -1,0 +1,28 @@
+[
+  {
+    "id": "1767474165498",
+    "name": "Tripmate Zanzibar",
+    "adminNumber": "255690000128",
+    "geminiApiKey": "AIzaSyCd2H-Z1mbO5iqdxIt42tjyomZdH9NYflo",
+    "businessType": "tourism",
+    "createdAt": "2026-01-03T21:02:45.498Z",
+    "status": "active",
+    "phoneNumber": "255690000128",
+    "qrCode": null,
+    "lastQR": "2026-01-03T21:07:38.757Z",
+    "connectedAt": "2026-01-03T21:35:36.489Z"
+  },
+  {
+    "id": "1767475315267",
+    "name": "Zanzibar Travel Helper",
+    "adminNumber": "255688774043",
+    "geminiApiKey": "AIzaSyCd2H-Z1mbO5iqdxIt42tjyomZdH9NYflo",
+    "businessType": "tourism",
+    "createdAt": "2026-01-03T21:21:55.267Z",
+    "status": "active",
+    "phoneNumber": "255678000313",
+    "qrCode": null,
+    "lastQR": "2026-01-03T21:25:44.299Z",
+    "connectedAt": "2026-01-03T21:35:38.799Z"
+  }
+]
