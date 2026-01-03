@@ -220,9 +220,10 @@ async function sendMessage(jid, content) {
  * Send text message with typing indicator
  * @param {string} jid - WhatsApp JID
  * @param {string} text - Message text
+ * @param {boolean} humanLike - Use longer delays to appear human
  * @returns {Promise<Object>} Send result
  */
-async function sendTextWithTyping(jid, text) {
+async function sendTextWithTyping(jid, text, humanLike = true) {
     if (!sock) {
         throw new Error('Not connected to WhatsApp');
     }
@@ -230,8 +231,18 @@ async function sendTextWithTyping(jid, text) {
     // Show typing indicator
     await sock.sendPresenceUpdate('composing', jid);
     
-    // Simulate typing delay (more natural)
-    const typingDelay = Math.min(text.length * 20, 2000);
+    // Calculate typing delay
+    let typingDelay;
+    if (humanLike) {
+        // Random delay 3-6 seconds to appear human-like
+        const baseDelay = 3000 + Math.random() * 3000;
+        // Add extra time for longer messages (reading + typing simulation)
+        const readingTime = Math.min(text.length * 15, 4000);
+        typingDelay = baseDelay + readingTime;
+    } else {
+        typingDelay = Math.min(text.length * 20, 2000);
+    }
+    
     await new Promise(resolve => setTimeout(resolve, typingDelay));
     
     // Send message

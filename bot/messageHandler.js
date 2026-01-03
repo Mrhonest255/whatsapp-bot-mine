@@ -153,16 +153,14 @@ async function handleMessage(sock, message) {
         // Route based on current state
         switch (currentState) {
             case STATES.IDLE:
-                if (isEntryKeyword(cleanText)) {
-                    response = startBookingFlow(phoneNumber, useSwahili);
-                } else if (shouldUseAI(cleanText)) {
-                    // Use AI for questions even in idle state
-                    session.state = STATES.AI_CHAT;
-                    response = await generateResponse(phoneNumber, cleanText, {
-                        language: session.language,
-                        pickupArea: session.pickupArea
-                    });
-                }
+                // First message - let AI handle naturally like a human
+                // AI will understand booking requests, questions, or general chat
+                session.state = STATES.AI_CHAT;
+                response = await generateResponse(phoneNumber, cleanText, {
+                    language: session.language,
+                    pickupArea: session.pickupArea,
+                    isFirstMessage: true
+                });
                 break;
                 
             case STATES.MAIN_MENU:

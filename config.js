@@ -20,8 +20,8 @@ module.exports = {
     // Gemini AI Configuration
     gemini: {
         apiKey: 'AIzaSyCd2H-Z1mbO5iqdxIt42tjyomZdH9NYflo',
-        model: 'gemini-2.0-flash-exp',
-        maxTokens: 1024,
+        model: 'gemini-2.5-pro',
+        maxTokens: 8192,
         temperature: 0.7
     },
     

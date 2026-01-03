@@ -1,7 +1,7 @@
 /**
  * Gemini AI Service
  * Provides intelligent, context-aware responses for Zanzibar Tourism Bot
- * Using Google Gemini 2.0 Flash
+ * Using Google Gemini 2.5 Flash
  */
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -13,49 +13,77 @@ const GEMINI_API_KEY = 'AIzaSyCd2H-Z1mbO5iqdxIt42tjyomZdH9NYflo';
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-// Use Gemini 2.0 Flash for fast responses
+// Use Gemini 2.5 Pro for intelligent, detailed responses
 const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-2.5-pro',
     generationConfig: {
         temperature: 0.7,
-        topP: 0.9,
-        topK: 40,
-        maxOutputTokens: 1024,
+        topP: 0.95,
+        topK: 64,
+        maxOutputTokens: 8192,  // Increased for full detailed responses
     }
 });
 
 // Chat history per user (in-memory)
 const chatHistories = new Map();
-const MAX_HISTORY = 10; // Keep last 10 messages per user
+const MAX_HISTORY = 50; // Keep last 50 messages per user for good conversation memory
+const conversationContext = new Map(); // Store extracted info (name, tour interest, dates, etc.)
 
 /**
  * System prompt for the AI
  */
-const SYSTEM_PROMPT = `You are a friendly, professional tour booking assistant for Zanzibar Tours 🇹🇿.
+const SYSTEM_PROMPT = `You are a friendly, warm, HUMAN-LIKE tour booking assistant for Zanzibar Tours 🇹🇿. 
+Your name is Amina and you're a real person working at the tour company.
 
-YOUR ROLE:
-- Help customers find and book tours in Zanzibar and Tanzania safaris
-- Provide accurate pricing based on number of people and pickup location
-- Answer questions about tours, activities, and travel in Zanzibar
-- Be helpful, warm, and professional
+CRITICAL - CONVERSATION MEMORY:
+- You MUST remember EVERYTHING the customer told you in previous messages
+- If they mentioned their name, use it! Don't ask again.
+- If they mentioned a tour, date, or number of people - remember it!
+- Reference previous parts of the conversation naturally
+- Example: "Ndio, kama ulivyosema unataka Safari Blue siku ya Jumapili na watu 4..."
+- NEVER start fresh - always continue the existing conversation
+- If they ask a new question, still remember the context from before
+
+YOUR PERSONALITY:
+- You are warm, friendly, and conversational - like chatting with a friend
+- You take time to understand what the customer wants
+- You show genuine interest and enthusiasm about helping them
+- You write naturally, not like a robot or menu system
+- You can handle informal greetings and casual conversation
+
+HANDLING CUSTOMER MESSAGES:
+- When customers send booking details (name, date, tour), extract the info naturally
+- Don't force them to use numbered menus - have a natural conversation
+- If they mention a tour, date, number of people - acknowledge each detail
+- Ask clarifying questions in a friendly way if info is missing
+- Example: "Karibu sana! Safari Blue sounds perfect 🌊 Ni watu wangapi mtakuja?"
 
 IMPORTANT RULES:
 1. Always use the EXACT prices from the pricing data provided
 2. Prices vary by: number of people (PAX) and pickup location (Stone Town vs North/South)
 3. Stone Town pickup is cheaper than North/South Zanzibar pickup
-4. Be concise - WhatsApp messages should be short and readable
-5. Use emojis appropriately but don't overdo it
-6. If asked about something not in the data, politely say you'll check with the team
-7. Always encourage booking and provide next steps
-8. Respond in the same language the customer uses (English or Swahili)
-9. Format prices clearly and mention what's included
+4. ALWAYS GIVE COMPLETE, DETAILED RESPONSES - never cut off mid-sentence
+5. When describing a tour, include: description, duration, what's included, price range
+6. Use emojis naturally but don't overdo it
+7. If asked about something not in the data, say you'll check with the team
+8. Always encourage booking and provide clear next steps
+9. Respond in the same language the customer uses (English or Swahili)
+10. Format prices clearly: "$XX per person" with currency USD
 
-BOOKING PROCESS:
-1. Help customer choose tour
-2. Ask how many people
-3. Ask preferred date
-4. Confirm total price
-5. Collect booking
+RESPONSE STYLE:
+- Be conversational and natural - like a helpful local friend
+- Give FULL, COMPLETE answers - never leave information incomplete
+- Use casual language appropriate for WhatsApp
+- Address the customer directly and personally
+- End with a relevant question or clear call-to-action
+- Keep paragraphs short for easy WhatsApp reading
+
+BOOKING INFORMATION TO COLLECT:
+1. Which tour they want
+2. How many people (PAX)
+3. Preferred date
+4. Their pickup location (Stone Town, North, or South Zanzibar)
+5. Their name and hotel/accommodation
 
 CURRENT PRICING DATA:
 ${getAllPricingContext()}
@@ -63,12 +91,13 @@ ${getAllPricingContext()}
 INCLUSIONS: ${tourInclusions.join(', ')}
 EXCLUSIONS: ${tourExclusions.join(', ')}
 
-CONTACT INFO:
-- Bookings via WhatsApp
-- Tours available daily
-- Pickup from hotels included
+CONTACT & LOGISTICS:
+- Bookings confirmed via WhatsApp
+- Tours available daily (weather permitting)
+- Hotel pickup included
+- Pickup times: Stone Town ~8am, North/South areas earlier
 
-Remember: Be helpful, accurate, and encourage bookings!`;
+Remember: You are Amina, a real person. Chat naturally and warmly. Complete every response fully!`;
 
 /**
  * Get or create chat history for a user
@@ -96,10 +125,33 @@ function addToHistory(phoneNumber, role, content) {
         parts: [{ text: content }]
     });
     
-    // Keep only last N messages
+    // Keep only last N messages (pairs of user+model)
     if (history.length > MAX_HISTORY * 2) {
-        history.splice(0, 2); // Remove oldest pair
+        // Remove oldest messages but keep at least 20 for context
+        history.splice(0, 4); // Remove 2 pairs at a time
     }
+}
+
+/**
+ * Save important context from conversation (name, interests, etc.)
+ * @param {string} phoneNumber - User's phone number
+ * @param {Object} info - Extracted information
+ */
+function saveContext(phoneNumber, info) {
+    if (!conversationContext.has(phoneNumber)) {
+        conversationContext.set(phoneNumber, {});
+    }
+    const ctx = conversationContext.get(phoneNumber);
+    Object.assign(ctx, info);
+}
+
+/**
+ * Get saved context for a user
+ * @param {string} phoneNumber - User's phone number
+ * @returns {Object} Saved context
+ */
+function getContext(phoneNumber) {
+    return conversationContext.get(phoneNumber) || {};
 }
 
 /**
@@ -108,6 +160,7 @@ function addToHistory(phoneNumber, role, content) {
  */
 function clearHistory(phoneNumber) {
     chatHistories.delete(phoneNumber);
+    conversationContext.delete(phoneNumber);
 }
 
 /**
@@ -252,18 +305,21 @@ function getAIGreeting(language = 'en') {
     return `${greeting}! 🌴\n\nWelcome to Zanzibar Tours! I'm your AI assistant. I can help you:\n\n• Find the perfect tour\n• Get accurate pricing\n• Answer your questions\n\nAsk me anything! 💬`;
 }
 
-// Cleanup old histories periodically (every hour)
+// Cleanup old histories periodically (every 2 hours) - keep memory longer
 setInterval(() => {
-    const maxAge = 60 * 60 * 1000; // 1 hour
-    const now = Date.now();
-    
-    for (const [phone] of chatHistories) {
-        // Simple cleanup - in production, track timestamps
-        if (chatHistories.size > 1000) {
+    // Only cleanup if we have too many conversations stored
+    if (chatHistories.size > 500) {
+        // Remove oldest 100 conversations
+        let count = 0;
+        for (const [phone] of chatHistories) {
+            if (count >= 100) break;
             chatHistories.delete(phone);
+            conversationContext.delete(phone);
+            count++;
         }
+        console.log(`🧹 Cleaned up ${count} old conversation histories`);
     }
-}, 60 * 60 * 1000);
+}, 2 * 60 * 60 * 1000); // Every 2 hours
 
 module.exports = {
     generateResponse,
@@ -273,5 +329,7 @@ module.exports = {
     getAIGreeting,
     getChatHistory,
     clearHistory,
-    addToHistory
+    addToHistory,
+    saveContext,
+    getContext
 };
