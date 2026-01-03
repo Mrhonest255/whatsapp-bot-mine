@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Session data (sensitive - contains WhatsApp auth)
+storage/sessions/
+!storage/sessions/README.md
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Build
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp

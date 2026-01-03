@@ -1,0 +1,106 @@
+/**
+ * Bot Configuration
+ * Central configuration file for Zanzibar Tourism Bot
+ */
+
+module.exports = {
+    // Admin Configuration
+    admin: {
+        // Primary admin WhatsApp number (receives booking notifications)
+        // Format: country code + number without + or spaces
+        primaryNumber: '255688774043',
+        
+        // Additional admin numbers (optional)
+        additionalNumbers: [
+            // '255712345678',
+            // '255798765432'
+        ]
+    },
+    
+    // Gemini AI Configuration
+    gemini: {
+        apiKey: 'AIzaSyCd2H-Z1mbO5iqdxIt42tjyomZdH9NYflo',
+        model: 'gemini-2.0-flash-exp',
+        maxTokens: 1024,
+        temperature: 0.7
+    },
+    
+    // Bot Behavior
+    bot: {
+        // Name shown in messages
+        name: 'Zanzibar Tours',
+        
+        // Rate limiting (milliseconds between messages per user)
+        rateLimitMs: 1000,
+        
+        // Session timeout (milliseconds)
+        sessionTimeoutMs: 30 * 60 * 1000, // 30 minutes
+        
+        // Max chat history messages to keep per user
+        maxChatHistory: 10,
+        
+        // Enable AI for general questions
+        enableAI: true,
+        
+        // Enable typing indicators
+        showTyping: true,
+        
+        // Default language ('en' or 'sw')
+        defaultLanguage: 'en'
+    },
+    
+    // Business Information
+    business: {
+        name: 'Zanzibar Tours & Safaris',
+        phone: '+255 688 774 043',
+        email: 'info@zanzibartours.com',
+        website: 'www.zanzibartours.com',
+        location: 'Stone Town, Zanzibar, Tanzania',
+        
+        // Operating hours
+        hours: {
+            open: '08:00',
+            close: '20:00',
+            timezone: 'Africa/Dar_es_Salaam'
+        }
+    },
+    
+    // Tour Settings
+    tours: {
+        // Minimum booking notice (hours)
+        minBookingNotice: 24,
+        
+        // Maximum people per booking
+        maxPaxPerBooking: 50,
+        
+        // Currency
+        currency: 'USD',
+        
+        // Deposit percentage (for future payment integration)
+        depositPercent: 30
+    },
+    
+    // Storage
+    storage: {
+        // Bookings file path
+        bookingsFile: 'storage/bookings.json',
+        
+        // Sessions directory
+        sessionsDir: 'storage/sessions'
+    },
+    
+    // Messages
+    messages: {
+        // Welcome message
+        welcome: {
+            en: '🌴 Welcome to Zanzibar Tours! 🇹🇿',
+            sw: '🌴 Karibu Zanzibar Tours! 🇹🇿'
+        },
+        
+        // After booking confirmation
+        afterBooking: {
+            en: '📞 Our agent will contact you within 1 hour to confirm your booking.',
+            sw: '📞 Wakala wetu atawasiliana nawe ndani ya saa 1 kuthibitisha uhifadhi wako.'
+        }
+    }
+};

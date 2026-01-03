@@ -1,0 +1,32 @@
+{
+  "name": "zanzibar-tourism-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp Multi-Device Tourism Booking Bot for Zanzibar Tours using Baileys",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "pm2:start": "pm2 start index.js --name zanzibar-bot",
+    "pm2:stop": "pm2 stop zanzibar-bot",
+    "pm2:restart": "pm2 restart zanzibar-bot",
+    "pm2:logs": "pm2 logs zanzibar-bot"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "baileys",
+    "tourism",
+    "zanzibar",
+    "booking"
+  ],
+  "author": "Zanzibar Tours",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@whiskeysockets/baileys": "^6.7.16",
+    "pino": "^9.6.0",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
