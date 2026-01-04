@@ -1,6 +1,7 @@
 /**
  * Bot Configuration
- * Central configuration file for Zanzibar Tourism Bot
+ * Central configuration file for Universal Business Bot
+ * NOTE: API keys are loaded from environment variables for security
  */
 
 module.exports = {
@@ -8,7 +9,7 @@ module.exports = {
     admin: {
         // Primary admin WhatsApp number (receives booking notifications)
         // Format: country code + number without + or spaces
-        primaryNumber: '255688774043',
+        primaryNumber: process.env.ADMIN_PHONE || '255688774043',
         
         // Additional admin numbers (optional)
         additionalNumbers: [
@@ -17,18 +18,25 @@ module.exports = {
         ]
     },
     
-    // Gemini AI Configuration
+    // Gemini AI Configuration - API KEY IS PRIVATE!
     gemini: {
-        apiKey: 'AIzaSyCd2H-Z1mbO5iqdxIt42tjyomZdH9NYflo',
+        // Enable/disable Gemini AI
+        enabled: true,
+        // Load from environment variable or use default (keep secure!)
+        apiKey: process.env.GEMINI_API_KEY || 'AIzaSyAl6DP-5Qjawh3tgw-HeOYJd1SKq0IjCxQ',
         model: 'gemini-2.5-pro',
         maxTokens: 8192,
-        temperature: 0.7
+        temperature: 0.7,
+        // Fallback settings - use manual responses when AI fails
+        enableFallback: true,
+        maxRetries: 2,
+        timeoutMs: 30000
     },
     
     // Bot Behavior
     bot: {
         // Name shown in messages
-        name: 'Zanzibar Tours',
+        name: 'Business Assistant',
         
         // Rate limiting (milliseconds between messages per user)
         rateLimitMs: 1000,
@@ -46,7 +54,7 @@ module.exports = {
         showTyping: true,
         
         // Default language ('en' or 'sw')
-        defaultLanguage: 'en'
+        defaultLanguage: 'sw'
     },
     
     // Business Information

@@ -1,11 +1,16 @@
 /**
  * Multi-Tenant Message Handler
  * Handles messages for each tenant with their own context
+ * Uses dynamic prompt builder for any business type!
+ * Includes fallback responses when AI is unavailable
  */
 
-const { generateResponse, clearHistory, getChatHistory, addToHistory } = require('../utils/gemini');
+const config = require('../config');
 const tenantManager = require('./tenantManager');
 const { sendTextWithTyping } = require('./tenantConnection');
+const { buildSystemPrompt } = require('../business-templates/promptBuilder');
+const { getKnowledgeBase, knowledgeExists } = require('../business-templates/knowledgeBase');
+const { generateFallbackResponse, detectLanguage, canUseFallback } = require('../business-templates/fallbackResponses');
 
 // Tenant-specific chat histories
 const tenantChatHistories = new Map(); // tenantId -> Map(phoneNumber -> history)
@@ -35,8 +40,20 @@ function getSession(tenantId, phoneNumber) {
 
 /**
  * Build system prompt for a specific tenant
+ * Now uses dynamic prompt builder from business-templates!
  */
 function buildTenantPrompt(tenant) {
+    try {
+        // Use the new dynamic prompt builder
+        const dynamicPrompt = buildSystemPrompt(tenant);
+        if (dynamicPrompt) {
+            return dynamicPrompt;
+        }
+    } catch (error) {
+        console.error(`⚠️ [${tenant.id}] Failed to build dynamic prompt:`, error.message);
+    }
+    
+    // Fallback to default prompt
     const defaultPrompt = `You are a friendly, warm, HUMAN-LIKE assistant for ${tenant.companyName} 🏢.
 Your name is ${tenant.botName || 'Assistant'} and you're a real person working at the company.
 
@@ -81,9 +98,23 @@ async function generateTenantResponse(tenantId, phoneNumber, userMessage, contex
     }
     const history = tenantHistories.get(phoneNumber);
     
-    try {
-        const { GoogleGenerativeAI } = require('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI('AIzaSyCd2H-Z1mbO5iqdxIt42tjyomZdH9NYflo');
+    // Check if we should use fallback for simple messages
+    const detectedLang = context.language || detectLanguage(userMessage);
+    
+    // If AI is disabled or for very simple messages, use fallback
+    if (!config.gemini.enabled || !config.gemini.apiKey) {
+        console.log(`🔄 [${tenantId}] Using fallback (AI disabled or no API key)`);
+        return generateFallbackResponse(tenant, userMessage, detectedLang);
+    }
+    
+    // Try AI with retry and fallback
+    let retries = config.gemini.maxRetries || 2;
+    let lastError = null;
+    
+    while (retries > 0) {
+        try {
+            const { GoogleGenerativeAI } = require('@google/generative-ai');
+            const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
         
         const model = genAI.getGenerativeModel({ 
             model: 'gemini-2.5-pro',
@@ -126,18 +157,36 @@ async function generateTenantResponse(tenantId, phoneNumber, userMessage, contex
         history.push({ role: 'model', parts: [{ text: response }] });
         
         // Keep last 50 messages
-        if (history.length > 100) {
-            history.splice(0, 4);
+            if (history.length > 100) {
+                history.splice(0, 4);
+            }
+            
+            return response;
+            
+        } catch (error) {
+            lastError = error;
+            retries--;
+            console.error(`⚠️ [${tenantId}] AI Error (retries left: ${retries}):`, error.message);
+            
+            if (retries > 0) {
+                // Wait before retry
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
         }
-        
-        return response;
-        
-    } catch (error) {
-        console.error(`❌ [${tenantId}] AI Error:`, error.message);
-        return context.language === 'sw' 
-            ? '🙏 Samahani, kuna tatizo. Tafadhali jaribu tena.'
-            : '🙏 Sorry, I encountered an issue. Please try again.';
     }
+    
+    // All retries failed - use fallback
+    console.log(`🔄 [${tenantId}] AI failed after retries, using fallback response`);
+    
+    if (config.gemini.enableFallback) {
+        const fallbackResponse = generateFallbackResponse(tenant, userMessage, detectedLang);
+        return fallbackResponse;
+    }
+    
+    // Last resort default message
+    return detectedLang === 'sw' 
+        ? '🙏 Samahani, kuna tatizo. Tafadhali jaribu tena baadaye.'
+        : '🙏 Sorry, I encountered an issue. Please try again later.';
 }
 
 /**

@@ -1,16 +1,20 @@
 /**
  * Gemini AI Service
- * Provides intelligent, context-aware responses for Zanzibar Tourism Bot
- * Using Google Gemini 2.5 Flash
+ * Provides intelligent, context-aware responses for business bots
+ * Using Google Gemini 2.5 Pro
  */
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { getAllPricingContext, tourInclusions, tourExclusions } = require('../bot/tours');
+const config = require('../config');
 
-// Gemini API Configuration
-const GEMINI_API_KEY = 'AIzaSyCd2H-Z1mbO5iqdxIt42tjyomZdH9NYflo';
+// Get API key from config (which uses environment variable or fallback)
+const GEMINI_API_KEY = config.gemini.apiKey;
 
-// Initialize Gemini
+if (!GEMINI_API_KEY) {
+    console.error('⚠️ GEMINI_API_KEY not configured! Set GEMINI_API_KEY environment variable.');
+}
+
+// Initialize Gemini with config API key
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // Use Gemini 2.5 Pro for intelligent, detailed responses
